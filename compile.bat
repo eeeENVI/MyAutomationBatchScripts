@@ -77,7 +77,7 @@ if "%build_type%" == "Debug" (
 ) 
 
 if "%build_type%" == "Release" (
-%COMPILER% %OBJ_DIR%\*.o -o %BIN_DIR%\%EXE_NAME% -L%SFML_LIB_DIR% -lsfml-graphics -lsfml-window -lsfml-system
+%COMPILER% -O2 %OBJ_DIR%\*.o -o %BIN_DIR%\%EXE_NAME% -L%SFML_LIB_DIR% -lsfml-graphics -lsfml-window -lsfml-system
 )
 
 
