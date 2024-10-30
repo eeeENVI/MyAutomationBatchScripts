@@ -31,11 +31,11 @@ if "%build_target%"=="" (
 
 REM Define the directories
 set SRC_DIR=.\%build_target%\src
-set OBJ_DIR=.\%build_target%\obj\%build_type%
+set OBJ_DIR=.\%build_target%\obj\\%build_type%
 set BIN_DIR=.\%build_target%\bin\%build_type%
 set EXE_NAME=%build_target%.exe
 
-REM TOOLCHAIN SFML-2.6.1 GCC 13.1.0 MinGW (SEH) - 64-bit
+REM Define the TOOLCHAIN : SFML-2.6.1 GCC 13.1.0 MinGW (SEH) - 64-bit
 set SFML_INCLUDE_DIR=C:\libs\SFML-2.6.1\include
 set SFML_LIB_DIR=C:\libs\SFML-2.6.1\lib
 set SFML_BIN_DIR=C:\libs\SFML-2.6.1\bin
@@ -55,6 +55,30 @@ if not exist %OBJ_DIR% (
     echo %OBJ_DIR% created. 
 )
 
+REM Define timestamp file to avoid building if not modified
+set TIMESTAMP_FILE=.\%build_target%\last_build.timestamp
+
+REM Generate a unique hash based on file modification times of all .cpp files
+set MOD_TIME_HASH=
+for %%f in (%SRC_DIR%\*.cpp) do (
+    for %%t in (%%f) do set MOD_TIME_HASH=!MOD_TIME_HASH!%%~tf
+)
+
+REM Check if the hash has changed by comparing to the stored timestamp
+if exist %TIMESTAMP_FILE% (
+    set /p LAST_MOD_HASH=<%TIMESTAMP_FILE%
+) else (
+    set LAST_MOD_HASH=
+)
+
+REM If the hashes differ, perform a build; otherwise, skip
+if "%MOD_TIME_HASH%" EQU "%LAST_MOD_HASH%" (
+    echo No changes detected. Build is up-to-date.
+    goto :end
+) else  (
+    echo Changes detected. Rebuilding project...
+)
+
 REM Loop through all .cpp files in the src directory
 REM -c compile -g debug_info -Wall all Warnings
 for %%f in (%SRC_DIR%\*.cpp) do (
@@ -68,9 +92,8 @@ if not exist %BIN_DIR% (
     echo %BIN_DIR% created.
 )
 
-REM Specify compilation of Release or Debug version based on build_type
+REM Specify linking of Release or Debug version based on build_type
 REM Diffrent types require diffrent dlls
-
 
 if "%build_type%" == "Debug" (
 %COMPILER% %OBJ_DIR%\*.o -o %BIN_DIR%\%EXE_NAME% -L%SFML_LIB_DIR% -lsfml-graphics-d -lsfml-window-d -lsfml-system-d 
@@ -80,10 +103,14 @@ if "%build_type%" == "Release" (
 %COMPILER% -O2 %OBJ_DIR%\*.o -o %BIN_DIR%\%EXE_NAME% -L%SFML_LIB_DIR% -lsfml-graphics -lsfml-window -lsfml-system
 )
 
+REM Copying files
 
 if %errorlevel% equ 0 (
-    echo Linking complete %EXE_NAME% %build_type% created.
-    echo Compilation with %COMPILER% complete.
+    REM Update the timestamp file with the new hash
+    echo %MOD_TIME_HASH%>%TIMESTAMP_FILE%
+    echo Build complete...
+    echo Compilation with %COMPILER% complete...
+    echo Linking %EXE_NAME% %build_type% complete...
 
     REM Copying assets/configs etc..
     :: D stands for directories
@@ -120,3 +147,4 @@ if %errorlevel% equ 0 (
 
 :end
 echo end
+exit /b
