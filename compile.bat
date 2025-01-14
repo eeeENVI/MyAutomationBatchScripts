@@ -31,9 +31,17 @@ if "%build_target%"=="" (
 
 REM Define the directories
 set SRC_DIR=.\%build_target%\src
-set OBJ_DIR=.\%build_target%\obj\\%build_type%
+set OBJ_DIR=.\%build_target%\obj\%build_type%
 set BIN_DIR=.\%build_target%\bin\%build_type%
 set EXE_NAME=%build_target%.exe
+
+REM Initialize INCLUDE_SUB_DIRS variable
+set INCLUDE_SUB_DIRS=-I%SRC_DIR%
+
+REM Loop through all subdirectories and add -I for each
+for /d %%d in (%SRC_DIR%\*) do (
+    set INCLUDE_SUB_DIRS=%INCLUDE_SUB_DIRS% -I%%d
+)
 
 REM Define the TOOLCHAIN : SFML-2.6.1 GCC 13.1.0 MinGW (SEH) - 64-bit
 set SFML_INCLUDE_DIR=C:\libs\SFML-2.6.1\include
@@ -46,7 +54,7 @@ set "DEBUG_DLL_FILES=openal32.dll sfml-audio-d-2.dll sfml-graphics-d-2.dll sfml-
 set "RELEASE_DLL_FILES=openal32.dll sfml-audio-2.dll sfml-graphics-2.dll sfml-network-2.dll sfml-system-2.dll sfml-window-2.dll"
 
 REM Additional directories required for app to run
-set "RESOURCES_DIR=.\assets .\config"
+set "RESOURCES_DIR=.\assets .\config .\data"
 
 REM Create directories
 REM Create the object directory if it doesn't exist
@@ -60,7 +68,7 @@ set TIMESTAMP_FILE=.\%build_target%\last_build.timestamp
 
 REM Generate a unique hash based on file modification times of all .cpp files
 set MOD_TIME_HASH=
-for %%f in (%SRC_DIR%\*.cpp) do (
+for /r %SRC_DIR% %%f in (*.*) do  (
     for %%t in (%%f) do set MOD_TIME_HASH=!MOD_TIME_HASH!%%~tf
 )
 
@@ -81,9 +89,9 @@ if "%MOD_TIME_HASH%" EQU "%LAST_MOD_HASH%" (
 
 REM Loop through all .cpp files in the src directory
 REM -c compile -g debug_info -Wall all Warnings
-for %%f in (%SRC_DIR%\*.cpp) do (
+for /r %SRC_DIR% %%f in (*.cpp) do (
     echo Compiling %%f...
-    %COMPILER% -c -g -Wall %%f -I%SFML_INCLUDE_DIR% -o %OBJ_DIR%\%%~nf.o
+    %COMPILER% -c -g -Wall -Werror %%f %INCLUDE_SUB_DIRS% -I%SFML_INCLUDE_DIR% -o %OBJ_DIR%\%%~nf.o
 )
 
 REM Create the bin directory if it doesn't exist
