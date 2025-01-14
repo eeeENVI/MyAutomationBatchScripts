@@ -31,6 +31,7 @@ if "%build_target%"=="" (
 
 REM Define the directories
 set SRC_DIR=.\%build_target%\src
+set DEP_DIR=.\%build_target%\dep
 set OBJ_DIR=.\%build_target%\obj\%build_type%
 set BIN_DIR=.\%build_target%\bin\%build_type%
 set EXE_NAME=%build_target%.exe
@@ -49,6 +50,12 @@ set SFML_LIB_DIR=C:\libs\SFML-2.6.1\lib
 set SFML_BIN_DIR=C:\libs\SFML-2.6.1\bin
 set COMPILER=C:\msys64\mingw64\bin\g++
 
+REM compiler flags: -c compile -g debug_info -Wall all Warnings -Werror warnings are errors
+set CFLAGS=-g -Wall -Werror
+REM compiler flags for dependency generation: -MMD generate .d file for each source file 
+REM -MP files that are no longer required (because headers were deleted) are marked as dependencies and won't cause errors.
+set DEPFLAGS=-MMD -MP
+
 REM DLL's for linking
 set "DEBUG_DLL_FILES=openal32.dll sfml-audio-d-2.dll sfml-graphics-d-2.dll sfml-network-d-2.dll sfml-system-d-2.dll sfml-window-d-2.dll"
 set "RELEASE_DLL_FILES=openal32.dll sfml-audio-2.dll sfml-graphics-2.dll sfml-network-2.dll sfml-system-2.dll sfml-window-2.dll"
@@ -61,6 +68,12 @@ REM Create the object directory if it doesn't exist
 if not exist %OBJ_DIR% (
     mkdir %OBJ_DIR%
     echo %OBJ_DIR% created. 
+)
+
+REM Create the dependency directory if it doesn't exist
+if not exist %DEP_DIR% (
+    mkdir %DEP_DIR%
+    echo %DEP_DIR% created.
 )
 
 REM Define timestamp file to avoid building if not modified
@@ -88,10 +101,10 @@ if "%MOD_TIME_HASH%" EQU "%LAST_MOD_HASH%" (
 )
 
 REM Loop through all .cpp files in the src directory
-REM -c compile -g debug_info -Wall all Warnings
+REM -c compile -g debug_info -Wall all Warnings -Werror warnings are errors
 for /r %SRC_DIR% %%f in (*.cpp) do (
-    echo Compiling %%f...
-    %COMPILER% -c -g -Wall -Werror %%f %INCLUDE_SUB_DIRS% -I%SFML_INCLUDE_DIR% -o %OBJ_DIR%\%%~nf.o
+    echo Compiling %%f and generating dependency files...
+    %COMPILER% %CFLAGS% %DEPFLAGS% -c %%f %INCLUDE_SUB_DIRS% -I%SFML_INCLUDE_DIR% -o %OBJ_DIR%\%%~nf.o -MF %DEP_DIR%\%%~nxf.d
 )
 
 REM Create the bin directory if it doesn't exist
